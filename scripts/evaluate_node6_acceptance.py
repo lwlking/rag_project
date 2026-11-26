@@ -24,6 +24,7 @@ from retrieval.embedding_cache import EmbeddingCache
 from retrieval.hybrid_retriever import HybridRetrieverService
 from retrieval.pipeline import RetrievalPipeline
 from scripts.evaluate_embedded_retrieval import load_chunk_catalog
+from scripts.evaluation_hashing import sha256_text_file
 from scripts.run_chunking_benchmark import compact, ngram_recall, percentile, read_jsonl
 from scripts.run_node6_retrieval_baseline import CachedQuestionEmbeddings
 from scripts.run_node6_rerank_eval import save_cache
@@ -67,7 +68,7 @@ def main() -> None:
     bundle = ROOT / "data/eval" / dataset_id
     question_path = bundle / "annotations/acceptance_questions_v1.jsonl"
     frozen = json.loads((bundle / "annotations/acceptance_v1.lock.json").read_text(encoding="utf-8"))
-    question_hash = hashlib.sha256(question_path.read_bytes()).hexdigest()
+    question_hash = sha256_text_file(question_path)
     if question_hash != frozen["questions_sha256"]:
         raise ValueError("验收题与冻结指纹不一致")
     if config.embedding_model_name != "text-embedding-v4" or config.embedding_dimensions != 2048:

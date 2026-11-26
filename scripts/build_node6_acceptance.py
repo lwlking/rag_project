@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from scripts.evaluation_hashing import sha256_text_file
 from scripts.run_chunking_benchmark import read_jsonl, write_jsonl
 
 BUNDLE = ROOT / "data/eval/zh_public_minibench_v0.1"
@@ -108,7 +109,7 @@ def main() -> None:
         raise ValueError("验收题已经冻结，修改时需新建版本，禁止覆盖旧结果对应的题目")
     write_jsonl(output, rows)
     frozen = {"version": "acceptance-new-v1", "frozen_on": "2026-10-14",
-              "questions_sha256": hashlib.sha256(output.read_bytes()).hexdigest(),
+              "questions_sha256": sha256_text_file(output),
               "question_count": len(rows), "answerable_count": sum(row["answerable"] for row in rows),
               "locked_profiles": ["dense", "bm25_mixed", "hybrid_mixed", "hybrid_mixed_qwen37"],
               "vector_k": 20, "bm25_k": 20, "rrf_k": 60, "candidate_k": 40, "final_k": 6,
