@@ -181,7 +181,7 @@ def main() -> None:
                     raise ValueError(f"邻接扩展超出预算：{key}")
                 report["methods"].setdefault(f"{method}/{variant}", {})[key] = result
         if key in gaps:
-            # 标注只参与结果诊断，不参与检索、融合或邻接候选的选择。
+            # 标注只用于结果诊断，不参与检索、融合或邻接候选的选择。
             report["candidate_diagnostics"][key] = {}
             for name, ranked in rankings.items():
                 selected = [{"chunk_id": doc.metadata["chunk_id"],
