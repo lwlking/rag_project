@@ -22,6 +22,7 @@ from ingestion.storage import StorageLayout
 from retrieval.embedding_cache import EmbeddingCache
 from retrieval.evidence_expansion import NeighborhoodExpander
 from retrieval.hybrid_retriever import HybridRetrieverService
+from scripts.evaluation_hashing import sha256_text_file
 from scripts.audit_node7_evidence import audit, match_requirement
 from scripts.evaluate_embedded_retrieval import evaluate_ranking, load_chunk_catalog
 from scripts.evaluate_evidence_expansion import original_context_score
@@ -122,7 +123,7 @@ def main() -> None:
     if acceptance["identity"]["catalog_sha256"] != expected_catalog:
         raise ValueError("重排缓存语料指纹不一致")
     question_path = bundle / "annotations/acceptance_questions_v1.jsonl"
-    if acceptance["identity"]["questions_sha256"] != hashlib.sha256(question_path.read_bytes()).hexdigest():
+    if acceptance["identity"]["questions_sha256"] != sha256_text_file(question_path):
         raise ValueError("重排缓存问题指纹不一致")
     dense_cache = {}
 
@@ -180,7 +181,7 @@ def main() -> None:
                     raise ValueError(f"邻接扩展超出预算：{key}")
                 report["methods"].setdefault(f"{method}/{variant}", {})[key] = result
         if key in gaps:
-            # 标注只用于结果诊断，不参与召回、融合或邻接候选的选择。
+            # 标注只参与结果诊断，不参与检索、融合或邻接候选的选择。
             report["candidate_diagnostics"][key] = {}
             for name, ranked in rankings.items():
                 selected = [{"chunk_id": doc.metadata["chunk_id"],

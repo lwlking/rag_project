@@ -32,6 +32,7 @@ from retrieval.embedding_cache import EmbeddingCache
 from retrieval.pipeline import RetrievalResult
 from scripts.evaluate_embedded_retrieval import evaluate_ranking, load_chunk_catalog
 from scripts.evaluate_node6_acceptance import score_question
+from scripts.evaluation_hashing import sha256_text_file
 from scripts.run_chunking_benchmark import read_jsonl
 from scripts.run_node6_retrieval_baseline import CachedQuestionEmbeddings
 from scripts.run_node6_rerank_eval import save_cache
@@ -127,7 +128,7 @@ def load_questions_and_vectors(bundle: Path, evaluation: EvaluationStorageLayout
     """验证冻结题目及向量缓存，不悄悄生成或覆盖问题向量。"""
     annotations = bundle / "annotations"
     locked = json.loads((annotations / "acceptance_v1.lock.json").read_text(encoding="utf-8"))
-    if hashlib.sha256((annotations / "acceptance_questions_v1.jsonl").read_bytes()).hexdigest() != locked["questions_sha256"]:
+    if sha256_text_file(annotations / "acceptance_questions_v1.jsonl") != locked["questions_sha256"]:
         raise ValueError("新增验收题与冻结指纹不一致")
     suites = (("retrieval_55", "retrieval_questions.jsonl", "question_embeddings.sqlite3"),
               ("acceptance_23", "acceptance_questions_v1.jsonl", "acceptance_v1_embeddings.sqlite3"))
@@ -136,7 +137,7 @@ def load_questions_and_vectors(bundle: Path, evaluation: EvaluationStorageLayout
     for suite, filename, cache_name in suites:
         cache_path = evaluation.embeddings / "text-embedding-v4-2048" / cache_name
         if not cache_path.is_file():
-            raise ValueError(f"问题向量缓存不存在：{cache_path}")
+            raise ValueError(f"问题向量缓存不存在，不允许在线补齐：{cache_path}")
         with EmbeddingCache(cache_path) as cache:
             for original in read_jsonl(annotations / filename):
                 row = {**original, "evaluation_suite": suite}
@@ -144,7 +145,7 @@ def load_questions_and_vectors(bundle: Path, evaluation: EvaluationStorageLayout
                 if key in seen:
                     raise ValueError(f"评测题号重复：{key}")
                 if not cache.has_valid(key, query, "text-embedding-v4", 2048):
-                    raise ValueError(f"问题向量缓存不匹配：{key}")
+                    raise ValueError(f"问题向量缓存不匹配，不允许在线补齐：{key}")
                 vectors[query] = cache.get(key, "text-embedding-v4", 2048).vector.tolist()
                 seen.add(key)
                 questions.append(row)
